@@ -4,11 +4,14 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+
+app.use(cors());
 
 // Connect to MongoDB
 mongoose.connect(process.env.DATABASE_URL as string)
@@ -50,14 +53,19 @@ const sendOTPEmail = async (email: string, otp: string) => {
 
 app.post('/signup', async (req: Request, res: Response) => {
   try {
+    console.log("Signup api has been called")
     const { email, password } = req.body;
     const existingUser = await User.findOne({ email });
     const otp = generateOTP();
     if (existingUser) {
-      existingUser.otp = otp;
-      await existingUser.save();
-      await sendOTPEmail(email, otp);
-      res.status(200).json({ message: 'OTP resent. Please verify your email.' });
+      if (existingUser.is_verified) {
+        res.status(400).json({ message: 'User already registered and verified.' });
+      } else {
+        existingUser.otp = otp;
+        await existingUser.save();
+        await sendOTPEmail(email, otp);
+        res.status(200).json({ message: 'OTP resent. Please verify your email.' });
+      }
     } else {
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({
@@ -76,6 +84,7 @@ app.post('/signup', async (req: Request, res: Response) => {
 });
 
 app.post('/verify-otp', async (req: Request, res: Response) => {
+  console.log("Verify otp api has been called")
   const { email, otp } = req.body;
   try {
     const user = await User.findOne({ email });
@@ -93,6 +102,7 @@ app.post('/verify-otp', async (req: Request, res: Response) => {
 });
 
 app.post('/login', async (req: Request, res: Response) => {
+  console.log("Login api has been called")
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
