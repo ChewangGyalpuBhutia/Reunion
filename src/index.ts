@@ -11,7 +11,27 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-app.use(cors());
+// Define allowed origins
+const allowedOrigins = [
+  'http://localhost:3000', // Frontend development URL
+  'http://localhost:3001', // Frontend development URL
+  'https://your-vercel-frontend-url.vercel.app', // Vercel frontend deployment URL
+  'https://your-vercel-backend-url.vercel.app', // Vercel backend deployment URL (if needed)
+];
+
+// Configure CORS options
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+};
+
+// Use CORS middleware with options
+app.use(cors(corsOptions));
 
 // Connect to MongoDB
 mongoose.connect(process.env.DATABASE_URL as string)
@@ -53,7 +73,7 @@ const sendOTPEmail = async (email: string, otp: string) => {
 
 app.post('/signup', async (req: Request, res: Response) => {
   try {
-    console.log("Signup api has been called")
+    console.log("Signup API has been called");
     const { email, password } = req.body;
     const existingUser = await User.findOne({ email });
     const otp = generateOTP();
@@ -84,7 +104,7 @@ app.post('/signup', async (req: Request, res: Response) => {
 });
 
 app.post('/verify-otp', async (req: Request, res: Response) => {
-  console.log("Verify otp api has been called")
+  console.log("Verify OTP API has been called");
   const { email, otp } = req.body;
   try {
     const user = await User.findOne({ email });
@@ -102,7 +122,7 @@ app.post('/verify-otp', async (req: Request, res: Response) => {
 });
 
 app.post('/login', async (req: Request, res: Response) => {
-  console.log("Login api has been called")
+  console.log("Login API has been called");
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
