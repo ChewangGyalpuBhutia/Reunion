@@ -10,28 +10,10 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+console.log("hello you have deployed the code");
 
-// Define allowed origins
-const allowedOrigins = [
-  'http://localhost:3000', // Frontend development URL
-  'http://localhost:3001', // Frontend development URL
-  'https://your-vercel-frontend-url.vercel.app', // Vercel frontend deployment URL
-  'https://your-vercel-backend-url.vercel.app', // Vercel backend deployment URL (if needed)
-];
-
-// Configure CORS options
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-};
-
-// Use CORS middleware with options
-app.use(cors(corsOptions));
+// Use CORS middleware to allow all origins
+app.use(cors());
 
 // Connect to MongoDB
 mongoose.connect(process.env.DATABASE_URL as string)
@@ -141,6 +123,17 @@ app.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+app.get('/test', async (req: Request, res: Response) => {
+  console.log("Test API has been called");
+  try {
+    res.status(200).json({ message: 'Test API called successfully' });
+  }
+  catch (error) {
+    res.status(500).json({ error: 'Error logging in' });
+  }
 });
+
+// app.listen(3000, () => {
+//   console.log('Server is running on port 3000');
+// });
+export default app;
