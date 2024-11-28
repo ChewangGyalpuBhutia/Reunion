@@ -133,6 +133,109 @@ app.get('/test', async (req: Request, res: Response) => {
   }
 });
 
+// Define Task schema and model
+const taskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  startTime: { type: Date, required: true },
+  endTime: { type: Date, required: true },
+  priority: { type: Number, required: true, min: 1, max: 5 },
+  status: { type: String, required: true, enum: ['pending', 'finished'] },
+});
+
+const Task = mongoose.model('Task', taskSchema);
+
+// Create a new task
+app.post('/tasks', async (req: Request, res: Response) => {
+  try {
+    const { title, startTime, endTime, priority, status } = req.body;
+    console.log(title, startTime, endTime, priority, status);
+
+    const newTask = new Task({ title, startTime, endTime, priority, status });
+    console.log(newTask)
+    await newTask.save();
+    res.status(201).json(newTask);
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: 'Error creating task' });
+  }
+});
+
+// Update a task
+app.put('/tasks/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { title, startTime, endTime, priority, status } = req.body;
+    const updatedTask = await Task.findByIdAndUpdate(id, { title, startTime, endTime, priority, status }, { new: true });
+    res.status(200).json(updatedTask);
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating task' });
+  }
+});
+
+// Delete a task
+app.delete('/tasks/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await Task.findByIdAndDelete(id);
+    res.status(200).json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting task' });
+  }
+});
+
+// Get tasks with filtering and sorting
+app.get('/tasks', async (req: Request, res: Response) => {
+  try {
+    const { priority, status, sortBy } = req.query;
+    const filter: any = {};
+    if (priority) filter.priority = priority;
+    if (status) filter.status = status;
+    const tasks = await Task.find(filter).sort(sortBy ? { [sortBy as string]: 1 } : {});
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ error: 'Error retrieving tasks' });
+  }
+});
+
+// Get task dashboard summary
+app.get('/tasks/dashboard', async (req: Request, res: Response) => {
+  try {
+    const tasks = await Task.find();
+    const totalCount = tasks.length;
+    const completedCount = tasks.filter(task => task.status === 'finished').length;
+    const pendingCount = totalCount - completedCount;
+    const completedPercentage = (completedCount / totalCount) * 100;
+    const pendingTasks = tasks.filter(task => task.status === 'pending');
+
+    const totalActualTime = tasks.filter(task => task.status === 'finished').reduce((acc, task) => {
+      return acc + (new Date(task.endTime).getTime() - new Date(task.startTime).getTime()) / (1000 * 60 * 60);
+    }, 0);
+    const averageActualTime = completedCount ? totalActualTime / completedCount : 0;
+
+    const currentTime = new Date();
+    const pendingTaskSummary = pendingTasks.map(task => {
+      const timeLapsed = (currentTime.getTime() - new Date(task.startTime).getTime()) / (1000 * 60 * 60);
+      const timeToFinish = Math.max((new Date(task.endTime).getTime() - currentTime.getTime()) / (1000 * 60 * 60), 0);
+      return {
+        priority: task.priority,
+        title: task.title,
+        timeLapsed,
+        timeToFinish,
+      };
+    });
+
+    res.status(200).json({
+      totalCount,
+      completedPercentage,
+      pendingCount,
+      averageActualTime,
+      pendingTaskSummary,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error retrieving task dashboard summary' });
+  }
+});
+
 // app.listen(3000, () => {
 //   console.log('Server is running on port 3000');
 // });
