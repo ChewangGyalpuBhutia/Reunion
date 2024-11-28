@@ -1,131 +1,251 @@
-# Task Management Backend API
+# Task Management API
 
 ## Overview
-This backend API provides comprehensive task management functionality with various endpoints for creating, reading, updating, and deleting tasks, as well as generating dashboard summaries.
+This is a comprehensive Task Management API built with Express, MongoDB, and TypeScript. The API provides user authentication and task management functionalities.
 
-## Base URL
-- Local Development: `http://localhost:3000`
-- Deployed URL: `https://hd-phi.vercel.app`
+## Technologies Used
+- Express.js
+- MongoDB
+- Mongoose
+- TypeScript
+- JWT (JSON Web Tokens)
+- Bcrypt (for password hashing)
+- Nodemailer (for OTP email verification)
 
-## Database Schema
-### Task Model
-```typescript
+## Features
+
+### User Authentication
+- User signup with email verification
+- OTP-based email verification
+- Secure login with JWT token generation
+- Password hashing
+
+### Task Management
+- Create tasks
+- Update tasks
+- Delete tasks
+- Filter and sort tasks
+- Task dashboard with comprehensive analytics
+
+## Environment Variables
+Required environment variables:
+- `DATABASE_URL`: MongoDB connection string
+- `JWT_SECRET`: Secret key for JWT token generation
+- `EMAIL`: Gmail account for sending OTPs
+- `EMAIL_PASSWORD`: Gmail account password or app-specific password
+
+## API Endpoints
+
+### Authentication Endpoints
+
+#### Signup
+- **URL**: `/signup`
+- **Method**: `POST`
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "securepassword"
+  }
+  ```
+- **Responses**:
+  - `201`: User registered successfully
+  - `400`: User already registered
+  - `500`: Internal server error
+
+#### Verify OTP
+- **URL**: `/verify-otp`
+- **Method**: `POST`
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "otp": "123456"
+  }
+  ```
+- **Responses**:
+  - `200`: Email verified successfully
+  - `400`: Invalid OTP
+  - `500`: Error verifying OTP
+
+#### Login
+- **URL**: `/login`
+- **Method**: `POST`
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "securepassword"
+  }
+  ```
+- **Responses**:
+  - `200`: Returns JWT token
+  - `400`: Invalid credentials or unverified email
+  - `500`: Login error
+
+### Task Endpoints
+
+#### Create Task
+- **URL**: `/tasks`
+- **Method**: `POST`
+- **Request Body**:
+  ```json
+  {
+    "title": "Project Meeting",
+    "startTime": "2023-06-15T10:00:00Z",
+    "endTime": "2023-06-15T11:00:00Z",
+    "priority": 2,
+    "status": "pending"
+  }
+  ```
+- **Responses**:
+  - `201`: Task created successfully
+  - `500`: Error creating task
+
+#### Update Task
+- **URL**: `/tasks/:id`
+- **Method**: `PUT`
+- **Request Body**: Same as create task
+- **Responses**:
+  - `200`: Task updated successfully
+  - `500`: Error updating task
+
+#### Delete Task
+- **URL**: `/tasks/:id`
+- **Method**: `DELETE`
+- **Responses**:
+  - `200`: Task deleted successfully
+  - `500`: Error deleting task
+
+#### Get Tasks
+- **URL**: `/tasks`
+- **Method**: `GET`
+- **Query Parameters**:
+  - `priority`: Filter by task priority
+  - `status`: Filter by task status
+  - `sortBy`: Sort tasks by a specific field
+- **Responses**:
+  - `200`: Returns list of tasks
+  - `500`: Error retrieving tasks
+
+#### Task Dashboard
+- **URL**: `/tasks/dashboard`
+- **Method**: `GET`
+- **Responses**:
+  - `200`: Returns comprehensive task analytics
+    ```json
+    {
+      "totalCount": 10,
+      "completedPercentage": 60,
+      "pendingCount": 4,
+      "averageActualTime": 2.5,
+      "pendingTaskSummary": [...]
+    }
+    ```
+  - `500`: Error retrieving dashboard summary
+
+## Task Schema
+- `title`: String (required)
+- `startTime`: Date (required)
+- `endTime`: Date (required)
+- `priority`: Number (1-5)
+- `status`: String ('pending' or 'finished')
+
+## Test Data
+
+### Sample Tasks for Testing
+
+1. High Priority Task
+```json
 {
-  title: String (required)
-  startTime: Date (required)
-  endTime: Date (required)
-  priority: Number (required, min: 1, max: 5)
-  status: String (required, enum: ['pending', 'finished'])
+  "title": "Product Launch Preparation",
+  "startTime": "2024-02-10T09:00:00Z",
+  "endTime": "2024-02-15T17:00:00Z",
+  "priority": 5,
+  "status": "pending"
 }
 ```
 
-## Endpoints
-
-### 1. Create a Task
-- **URL:** `/tasks`
-- **Method:** `POST`
-- **Request Body:**
+2. Medium Priority Task
 ```json
 {
-  "title": "Project Planning",
-  "startTime": "2024-03-15T10:00:00Z",
-  "endTime": "2024-03-15T12:00:00Z",
+  "title": "Weekly Team Meeting",
+  "startTime": "2024-02-12T14:00:00Z",
+  "endTime": "2024-02-12T15:00:00Z",
   "priority": 3,
   "status": "pending"
 }
 ```
-- **Success Response:** 
-  - **Code:** 201
-  - **Content:** Created task object
 
-### 2. Update a Task
-- **URL:** `/tasks/:id`
-- **Method:** `PUT`
-- **Request Body:** Same as create task
-- **Success Response:**
-  - **Code:** 200
-  - **Content:** Updated task object
-
-### 3. Delete a Task
-- **URL:** `/tasks/:id`
-- **Method:** `DELETE`
-- **Success Response:**
-  - **Code:** 200
-  - **Content:** `{ "message": "Task deleted successfully" }`
-
-### 4. Get Tasks
-- **URL:** `/tasks`
-- **Method:** `GET`
-- **Query Parameters:**
-  - `priority`: Filter by priority
-  - `status`: Filter by status ('pending' or 'finished')
-  - `sortBy`: Sort by a specific field
-- **Success Response:**
-  - **Code:** 200
-  - **Content:** Array of task objects
-
-### 5. Get Dashboard Summary
-- **URL:** `/tasks/dashboard`
-- **Method:** `GET`
-- **Success Response:**
-  - **Code:** 200
-  - **Content:**
+3. Low Priority Task
 ```json
 {
-  "totalCount": 10,
-  "completedPercentage": 40,
-  "pendingCount": 6,
-  "averageActualTime": 2.5,
-  "pendingTaskSummary": [
-    {
-      "priority": 3,
-      "title": "Project Planning",
-      "timeLapsed": 1.5,
-      "timeToFinish": 0.5
-    }
-  ]
+  "title": "Update Project Documentation",
+  "startTime": "2024-02-13T10:00:00Z",
+  "endTime": "2024-02-14T12:00:00Z",
+  "priority": 1,
+  "status": "finished"
 }
 ```
 
-## Test Data
-### Sample Tasks
+4. Completed Task
 ```json
-[
-  {
-    "title": "Weekly Team Meeting",
-    "startTime": "2024-03-15T09:00:00Z",
-    "endTime": "2024-03-15T10:00:00Z",
-    "priority": 2,
-    "status": "finished"
-  },
-  {
-    "title": "Project Proposal Draft",
-    "startTime": "2024-03-16T14:00:00Z",
-    "endTime": "2024-03-16T16:00:00Z",
-    "priority": 4,
-    "status": "pending"
-  },
-  {
-    "title": "Client Presentation Prep",
-    "startTime": "2024-03-17T11:00:00Z",
-    "endTime": "2024-03-17T13:00:00Z",
-    "priority": 5,
-    "status": "pending"
-  }
-]
+{
+  "title": "Client Presentation Review",
+  "startTime": "2024-02-05T11:00:00Z",
+  "endTime": "2024-02-06T12:00:00Z",
+  "priority": 4,
+  "status": "finished"
+}
 ```
 
-## Error Handling
-All endpoints return a 500 status code with an error message if something goes wrong.
+### Bulk Test Data Creation Script
+You can use this script to quickly populate your database with test tasks:
 
+```javascript
+const tasks = [
+  {
+    "title": "Product Launch Preparation",
+    "startTime": "2024-02-10T09:00:00Z",
+    "endTime": "2024-02-15T17:00:00Z",
+    "priority": 5,
+    "status": "pending"
+  },
+  {
+    "title": "Weekly Team Meeting",
+    "startTime": "2024-02-12T14:00:00Z",
+    "endTime": "2024-02-12T15:00:00Z",
+    "priority": 3,
+    "status": "pending"
+  },
+  // ... add other tasks
+];
 
-## Recommended Tools
-- Postman
-- MongoDB Compass
-- VSCode REST Client
+// Use your API or MongoDB client to insert these tasks
+```
 
-## Future Improvements
-- Add user authentication
-- Implement more advanced filtering
-- Add task duration validation
-- Create more comprehensive error handling
+## Installation
+
+1. Clone the repository
+2. Install dependencies
+   ```bash
+   npm install
+   ```
+3. Create `.env` file with required environment variables
+4. Run the application
+   ```bash
+   npm start
+   ```
+
+## Security Notes
+- Passwords are hashed using bcrypt
+- JWT tokens are used for authentication
+- OTP-based email verification
+- CORS enabled
+- Environment variables for sensitive configurations
+
+## Contribution
+Pull requests are welcome. For major changes, please open an issue first to discuss proposed changes.
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
